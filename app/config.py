@@ -15,6 +15,7 @@ class AppConfig:
     gesture_sensitivity: float = 0.5
     smoothing_factor: float = 0.65
     trail_length: int = 20
+    effect_strength: float = 1.0
     target_fps: int = 60
 
     def __post_init__(self) -> None:
@@ -24,5 +25,7 @@ class AppConfig:
             raise ValueError("gesture_sensitivity must be between 0.0 and 1.0")
         if not 0.0 <= self.smoothing_factor < 1.0:
             raise ValueError("smoothing_factor must be between 0.0 and 1.0")
+        if not 0.0 <= self.effect_strength <= 1.0:
+            raise ValueError("effect_strength must be between 0.0 and 1.0")
         if self.trail_length < 1 or self.target_fps < 1:
             raise ValueError("trail_length and target_fps must be positive")

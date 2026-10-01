@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+
+# Local runtime output
+logs/
+*.log
+
+# Editor and OS files
+.vscode/
+.idea/
+Thumbs.db

@@ -1,0 +1,6 @@
+# Core computer vision and interaction dependencies for GestureFX.
+numpy>=1.26,<3
+opencv-python>=4.10,<5
+# 0.10.14 retains the stable `mp.solutions.hands` API used by GestureFX.
+mediapipe==0.10.14
+pygame>=2.6,<3

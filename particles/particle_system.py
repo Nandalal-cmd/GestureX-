@@ -26,8 +26,9 @@ class ParticleSystem:
     """Own a reusable pool of particles and the forces that gestures apply to them.
 
     The system never touches the camera or the renderer: callers hand it target
-    points and read the pool back for drawing. The population only changes through
-    :meth:`emit` and :meth:`fill`, unless ``auto_fill`` keeps it topped up.
+    points and read the pool back for drawing. A new pool starts empty; the
+    population only changes through :meth:`emit` and :meth:`fill`, unless
+    ``auto_fill`` keeps it topped up.
     """
 
     def __init__(
@@ -47,11 +48,12 @@ class ParticleSystem:
         self._bounds = bounds
         self._auto_fill = auto_fill
         self._cursor = 0
-        self._particles = [Particle() for _ in range(resolved)]
+        self._particles = []
+        for _ in range(resolved):
+            particle = Particle()
+            particle.life = 0.0
+            self._particles.append(particle)
         self._alive = 0
-        for particle in self._particles:
-            self._respawn(particle)
-        self._alive = self._count_alive()
 
     @property
     def particles(self) -> list[Particle]:
@@ -100,9 +102,9 @@ class ParticleSystem:
                 particle.vx += dx * factor
                 particle.vy += dy * factor
 
-    def emit(self, point: Point, *, count: int = 1, speed: float = SPAWN_SPEED) -> int:
-        """Start up to count particles near a point, returning how many were started."""
-        emitted = 0
+    def emit(self, point: Point, *, count: int = 1, speed: float = SPAWN_SPEED) -> list[Particle]:
+        """Start up to count particles near a point and return them for further tuning."""
+        started: list[Particle] = []
         for _ in range(min(count, self.capacity)):
             particle = self._take_slot()
             expired = not particle.is_alive
@@ -117,8 +119,8 @@ class ParticleSystem:
                 lifetime=self._random_lifetime(),
             )
             self._alive += int(expired)
-            emitted += 1
-        return emitted
+            started.append(particle)
+        return started
 
     def fill(self) -> int:
         """Revive every expired particle at a random position, returning how many started."""

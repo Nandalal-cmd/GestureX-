@@ -83,8 +83,16 @@ def test_system_uses_configured_count_and_rejects_invalid_count() -> None:
         ParticleSystem(config, count=7)
 
 
+def test_a_new_pool_starts_empty_and_fill_starts_it() -> None:
+    system = make_system(count=8)
+    assert system.active_count == 0
+    assert system.fill() == 8
+    assert system.active_count == 8
+
+
 def test_update_reuses_the_pool_without_allocating() -> None:
     system = make_system(count=10, bounds=(0.0, 0.0, 1.0, 1.0))
+    system.fill()
     before = [id(particle) for particle in system.particles]
     for _ in range(20):
         system.update(1.0 / 60.0)
@@ -94,6 +102,7 @@ def test_update_reuses_the_pool_without_allocating() -> None:
 
 def test_auto_fill_keeps_the_pool_full_and_otherwise_particles_expire() -> None:
     sustained = make_system(count=6, bounds=(0.0, 0.0, 1.0, 1.0), auto_fill=True)
+    sustained.fill()
     for _ in range(200):
         sustained.update(0.5)
         assert sustained.active_count == 6
@@ -108,29 +117,33 @@ def test_auto_fill_keeps_the_pool_full_and_otherwise_particles_expire() -> None:
 def test_emit_reuses_expired_particles_and_never_exceeds_capacity() -> None:
     system = make_system(count=4)
     expire_all(system)
-    assert system.emit((0.5, 0.5)) == 1
+    assert len(system.emit((0.5, 0.5))) == 1
     assert system.active_count == 1
     assert len({id(particle) for particle in system.particles}) == 4
 
     full = make_system(count=4)
-    assert full.emit((0.5, 0.5), count=10) == 4
+    assert len(full.emit((0.5, 0.5), count=10)) == 4
     assert full.active_count == 4
-    assert full.emit((0.5, 0.5), count=10) == 4
+    assert len(full.emit((0.5, 0.5), count=10)) == 4
     assert full.capacity == 4
 
 
 def test_emit_overwrites_the_particle_closest_to_expiry_when_full() -> None:
     system = make_system(count=3)
+    system.fill()
     for index, particle in enumerate(system.particles):
         particle.life = float(index + 1)
         particle.max_life = 10.0
-    assert system.emit((0.5, 0.5)) == 1
-    assert system.particles[0].life_ratio > 0.0
+    assert system.active_count == 3
+
+    assert len(system.emit((0.5, 0.5))) == 1
+    assert system.particles[0].life_ratio > 0.9
     assert system.active_count == 3
 
 
 def test_forces_use_configured_effect_strength_by_default() -> None:
     system = ParticleSystem(AppConfig(effect_strength=0.5), count=1, rng=Random(3))
+    system.fill()
     particle = system.particles[0]
     particle.x, particle.y, particle.vx, particle.vy = 0.0, 0.0, 0.0, 0.0
     system.attract((1.0, 1.0))
@@ -142,6 +155,7 @@ def test_forces_use_configured_effect_strength_by_default() -> None:
 
 def test_repel_pushes_particle_away_from_target() -> None:
     system = make_system(count=1)
+    system.fill()
     particle = system.particles[0]
     particle.x, particle.y, particle.vx, particle.vy = 1.0, 1.0, 0.0, 0.0
     system.repel((0.0, 0.0), strength=0.25)

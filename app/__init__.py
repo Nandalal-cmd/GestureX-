@@ -1,1 +1,0 @@
-"""GestureFX application package."""

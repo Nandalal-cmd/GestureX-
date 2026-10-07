@@ -21,7 +21,7 @@ class HandTracker:
         self._smoothed_palms = {}
 
     def process(self, frame_bgr):
-        """Return list of (landmarks, palm_center_norm), one per detected hand."""
+        """Return list of (landmarks, palm_center_norm, handedness) per hand."""
         rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         results = self._hands.process(rgb)
         if not results.multi_hand_landmarks:
@@ -35,7 +35,10 @@ class HandTracker:
             prev = self._smoothed_palms.get(i)
             self._smoothed_palms[i] = center if prev is None else smooth_point(prev, center, self.smoothing_factor)
             active_ids.add(i)
-            out.append((landmarks, self._smoothed_palms[i]))
+            label = "Right"
+            if results.multi_handedness and i < len(results.multi_handedness):
+                label = results.multi_handedness[i].classification[0].label
+            out.append((landmarks, self._smoothed_palms[i], label))
         self._smoothed_palms = {i: self._smoothed_palms[i] for i in active_ids}
         return out
 

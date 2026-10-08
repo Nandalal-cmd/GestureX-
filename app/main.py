@@ -7,6 +7,7 @@ import pygame
 from app import config
 from camera.camera import Camera
 from effects.galaxy import FACTS, Galaxy
+from effects.starfield import Starfield
 from effects.trails import Trail
 from gestures.gesture_detector import detect_pose, finger_states, pinch_distance, pinch_point
 from gestures.gesture_types import GestureType
@@ -54,6 +55,7 @@ def main() -> None:
     trails = [Trail(config.TRAIL_LENGTH), Trail(config.TRAIL_LENGTH)]
     galaxy = Galaxy()
     renderer = Renderer(1280, 720)
+    starfield = Starfield(renderer.width, renderer.height)
     clock = pygame.time.Clock()
 
     w, h = renderer.width, renderer.height
@@ -147,8 +149,10 @@ def main() -> None:
 
         galaxy_anchor = (w / 2.0, h / 2.0)
         galaxy.update(dt, effective_gesture)
+        starfield.update(dt)
 
         renderer.draw_frame(last_frame, dim=140)
+        starfield.draw(renderer.surface, galaxy.yaw)
         galaxy.draw(renderer.surface, galaxy_anchor, elapsed)
 
         gesture_colors = {

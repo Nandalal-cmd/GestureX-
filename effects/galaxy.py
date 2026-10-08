@@ -97,11 +97,6 @@ class Galaxy:
         self.grabbed = None
         self.grab_pos = None
         self._font = None
-        self.stars = [
-            (random.random(), random.random(),
-             random.uniform(0.7, 2.2), random.uniform(0, math.tau))
-            for _ in range(150)
-        ]
 
     def set_orientation(self, yaw: float, tilt: float):
         self.target_yaw = max(-1.1, min(1.1, yaw))
@@ -242,12 +237,6 @@ class Galaxy:
         draw_glow(surface, center, (255, 245, 200), r * 1.15, alpha=80)
 
     def draw(self, surface, center, time_s=0.0):
-        w, h = surface.get_size()
-        for sx, sy, size, seed in self.stars:
-            tw = 0.55 + 0.45 * math.sin(time_s * 1.6 + seed)
-            c = int(150 + 105 * tw)
-            pygame.draw.circle(surface, (c, c, c), (int(sx * w), int(sy * h)), max(1, int(size)))
-
         for b in self.bodies:
             x, y, scale, z = self._project(b, center)
             b.screen = (x, y)

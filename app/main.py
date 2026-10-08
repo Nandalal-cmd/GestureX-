@@ -9,7 +9,15 @@ from camera.camera import Camera
 from effects.galaxy import FACTS, Galaxy
 from effects.starfield import Starfield
 from effects.trails import Trail
-from gestures.gesture_detector import detect_pose, finger_states, pinch_distance, pinch_point
+from gestures.gesture_detector import (
+    PINCH_RATIO,
+    PINCH_RATIO_RELEASE,
+    PoseStabilizer,
+    detect_pose,
+    finger_states,
+    pinch_point,
+    pinch_ratio,
+)
 from gestures.gesture_types import GestureType
 from gestures.motion_tracker import MotionTracker
 from rendering.renderer import Renderer
@@ -21,7 +29,6 @@ from utils.logger import setup_logging
 logger = logging.getLogger(__name__)
 
 STRETCH_REF_PX = 430.0
-GRAB_PINCH_THRESHOLD = 0.055
 DEFAULT_YAW = 0.0
 DEFAULT_TILT = 0.45
 
@@ -53,6 +60,7 @@ def main() -> None:
     motions = [MotionTracker(config.SMOOTHING_FACTOR),
                MotionTracker(config.SMOOTHING_FACTOR)]
     trails = [Trail(config.TRAIL_LENGTH), Trail(config.TRAIL_LENGTH)]
+    stabs = [PoseStabilizer(), PoseStabilizer()]
     galaxy = Galaxy()
     renderer = Renderer(1280, 720)
     starfield = Starfield(renderer.width, renderer.height)
@@ -88,7 +96,8 @@ def main() -> None:
 
         for i, hand in enumerate(hands):
             landmarks, palm, label = hand
-            g, c = detect_pose(landmarks, config.GESTURE_SENSITIVITY)
+            raw_g, raw_c = detect_pose(landmarks, config.GESTURE_SENSITIVITY)
+            g, c = stabs[i].update(raw_g, raw_c)
             open_count = sum(1 for open_ in finger_states(landmarks).values() if open_)
             swipe = motions[i].update(palm)
             if swipe is not None:
@@ -104,6 +113,7 @@ def main() -> None:
         for i in range(2):
             if i >= len(hands):
                 motions[i].reset()
+                stabs[i].reset()
                 while trails[i].points:
                     trails[i].points.pop(0)
 
@@ -136,7 +146,10 @@ def main() -> None:
                 landmarks2 = hand2[0]
                 pp = pinch_point(landmarks2)
                 pp_screen = (pp[0] * w, pp[1] * h)
-                if pinch_distance(landmarks2) < GRAB_PINCH_THRESHOLD:
+                ratio = pinch_ratio(landmarks2)
+                limit = (PINCH_RATIO_RELEASE if galaxy.grabbed is not None
+                         else PINCH_RATIO)
+                if ratio < limit:
                     if galaxy.grabbed is None:
                         galaxy.grab(pp_screen)
                     else:

@@ -53,10 +53,16 @@ def hand_orientation(landmarks, handedness: str = "Right"):
 def main() -> None:
     setup_logging()
     state = UIState()
-    camera = Camera(config.CAMERA_INDEX)
+    camera = Camera(config.CAMERA_INDEX, config.CAMERA_WIDTH,
+                    config.CAMERA_HEIGHT)
     state.camera_active = camera.start()
 
-    tracker = HandTracker(config.SMOOTHING_FACTOR, max_hands=2)
+    tracker = HandTracker(config.SMOOTHING_FACTOR, max_hands=2,
+                          process_width=config.HAND_PROCESS_WIDTH,
+                          min_detection_confidence=config.HAND_MIN_DETECTION_CONFIDENCE,
+                          min_tracking_confidence=config.HAND_MIN_TRACKING_CONFIDENCE,
+                          landmark_smoothing=config.HAND_LANDMARK_SMOOTHING,
+                          enhance_contrast=config.HAND_ENHANCE_CONTRAST)
     motions = [MotionTracker(config.SMOOTHING_FACTOR),
                MotionTracker(config.SMOOTHING_FACTOR)]
     trails = [Trail(config.TRAIL_LENGTH), Trail(config.TRAIL_LENGTH)]
@@ -74,6 +80,7 @@ def main() -> None:
     while state.running:
         dt = max(clock.tick(config.TARGET_FPS) / 1000.0, 1e-3)
         elapsed = time.monotonic() - start_time
+        fps = 1.0 / dt
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -181,6 +188,7 @@ def main() -> None:
             ("kv", "Gesture", state.gesture, gcolor),
             ("bar", "Confidence", state.confidence, (80, 145, 255)),
             ("kv", "Stretch", f"{galaxy.stretch:.2f}x", (205, 215, 240)),
+            ("kv", "FPS", f"{fps:.0f} / {config.TARGET_FPS}", (140, 190, 160)),
         ]
         if galaxy.grabbed is not None:
             rows.append(("kv", "Planet", galaxy.grabbed.name, (255, 222, 145)))
@@ -194,8 +202,12 @@ def main() -> None:
             hg = gesture_colors.get(g.value, (150, 195, 255))
             rows.append(("kv", "Pose", g.value, hg))
         if not per_hand:
-            rows.append(("header", "NO HAND DETECTED", (255, 170, 110)))
-            rows.append(("small", "Show a hand to the camera", (170, 180, 200)))
+            rows.append(("header",
+                         "CAMERA OFFLINE" if not camera.active else "NO HAND DETECTED",
+                         (255, 170, 110)))
+            rows.append(("small",
+                         "Camera is disconnected" if not camera.active
+                         else "Show a hand to the camera", (170, 180, 200)))
         renderer.render_hud(rows)
         hint = ("TWIST WRIST = ROTATE   |   TWO HANDS = STRETCH   |   "
                 "PINCH HAND 2 = GRAB   |   SWIPE = FLING   |   FIST = COLLAPSE")

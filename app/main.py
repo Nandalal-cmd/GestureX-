@@ -85,7 +85,7 @@ def main() -> None:
             ok, frame = camera.read()
             if ok:
                 last_frame = frame
-                hands = tracker.process(frame)
+                hands = tracker.process(frame)[:2]
             else:
                 logger.warning("Frame grab failed.")
 
@@ -95,6 +95,8 @@ def main() -> None:
         per_hand = []
 
         for i, hand in enumerate(hands):
+            if i >= len(stabs):
+                break
             landmarks, palm, label = hand
             raw_g, raw_c = detect_pose(landmarks, config.GESTURE_SENSITIVITY)
             g, c = stabs[i].update(raw_g, raw_c)

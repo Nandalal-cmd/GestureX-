@@ -15,6 +15,7 @@ from utils.geometry import clamp
 
 PINCH_RATIO = 0.35
 PINCH_RATIO_RELEASE = 0.48
+FIST_CURL = 0.55
 MIN_HAND_SCALE = 0.06
 
 
@@ -93,8 +94,11 @@ def detect_pose(landmarks, sensitivity: float = 0.5):
     if extended >= 3:
         return GestureType.OPEN_PALM, clamp(0.6 + 0.1 * extended)
 
+    fs = fist_score(landmarks)
     if extended <= 1:
-        return GestureType.FIST, clamp(0.5 + 0.12 * (4 - extended))
+        return GestureType.FIST, clamp(0.6 + 0.1 * (2 - extended))
+    if fs < FIST_CURL:
+        return GestureType.FIST, clamp(0.55 + 0.45 * (1.0 - fs / FIST_CURL))
 
     return GestureType.UNKNOWN, 0.3
 

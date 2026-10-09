@@ -89,6 +89,41 @@ def _scale(pts, f):
     return _transform(pts, lambda x, y: (x * f, y * f))
 
 
+def test_balled_hand_with_mixed_fingers_is_fist():
+    pts = [(0.5, 0.80)] * 21
+    pts[0] = (0.5, 0.80)
+    pts[9] = (0.5, 0.60)
+    pts[6] = (0.5, 0.70)
+    pts[8] = (0.5, 0.64)
+    pts[10] = (0.5, 0.71)
+    pts[12] = (0.5, 0.65)
+    pts[14] = (0.5, 0.72)
+    pts[16] = (0.5, 0.75)
+    pts[18] = (0.5, 0.73)
+    pts[20] = (0.5, 0.76)
+    gesture, conf = detect_pose(make_landmarks(pts))
+    assert extended_fingers(make_landmarks(pts)) == 2
+    assert gesture == GestureType.FIST
+    assert 0.0 <= conf <= 1.0
+
+
+def test_peace_sign_is_not_fist():
+    pts = [(0.5, 0.80)] * 21
+    pts[0] = (0.5, 0.80)
+    pts[9] = (0.5, 0.55)
+    pts[6] = (0.5, 0.62)
+    pts[8] = (0.5, 0.25)
+    pts[10] = (0.5, 0.63)
+    pts[12] = (0.5, 0.27)
+    pts[14] = (0.5, 0.72)
+    pts[16] = (0.5, 0.76)
+    pts[18] = (0.5, 0.73)
+    pts[20] = (0.5, 0.76)
+    gesture, conf = detect_pose(make_landmarks(pts))
+    assert gesture == GestureType.UNKNOWN
+    assert 0.0 <= conf <= 1.0
+
+
 def test_extension_is_rotation_invariant():
     for angle in (0, 45, 90, 135, 180, -60):
         assert extended_fingers(_rotate(open_palm(), angle)) == 4, angle

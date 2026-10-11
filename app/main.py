@@ -1,5 +1,6 @@
 import logging
 import math
+import random
 import time
 
 import pygame
@@ -7,6 +8,7 @@ import pygame
 from app import config
 from camera.camera import Camera
 from effects.galaxy import FACTS, Galaxy
+from effects.lasers import LaserSystem
 from effects.starfield import Starfield
 from effects.trails import Trail
 from gestures.gesture_detector import (
@@ -15,16 +17,19 @@ from gestures.gesture_detector import (
     PoseStabilizer,
     detect_pose,
     finger_states,
+    hand_scale,
     pinch_point,
     pinch_ratio,
 )
 from gestures.gesture_types import GestureType
 from gestures.motion_tracker import MotionTracker
+from particles.particle_system import ParticleSystem
 from rendering.renderer import Renderer
 from tracking.hand_tracker import HandTracker
-from tracking.landmarks import INDEX_MCP, MIDDLE_MCP, PINKY_MCP, WRIST
+from tracking.landmarks import INDEX_MCP, INDEX_TIP, MIDDLE_MCP, PINKY_MCP, WRIST
 from ui.main_window import UIState
 from utils.logger import setup_logging
+from utils.sounds import SoundKit
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +75,14 @@ def main() -> None:
     galaxy = Galaxy()
     renderer = Renderer(1280, 720)
     starfield = Starfield(renderer.width, renderer.height)
+    lasers = LaserSystem(config.LASER_SPEED, config.LASER_COOLDOWN)
+    debris = ParticleSystem(400)
+    sounds = SoundKit(config.SOUND_ENABLED)
+    score = 0
+    comets_destroyed = 0
+    streak = 0
+    streak_until = 0.0
+    shake = 0.0
     clock = pygame.time.Clock()
 
     w, h = renderer.width, renderer.height
@@ -114,6 +127,12 @@ def main() -> None:
                 swipe_display_until = time.monotonic() + 0.6
                 galaxy.fling(3.5)
             trails[i].push(palm)
+            if g == GestureType.POINT:
+                tip = landmarks[INDEX_TIP]
+                base = landmarks[6]
+                angle = math.atan2(tip.y - base.y, tip.x - base.x)
+                if lasers.fire((tip.x * w, tip.y * h), angle, time.monotonic()):
+                    sounds.shoot()
             per_hand.append((landmarks, palm, g, c, open_count, label))
             if g != GestureType.UNKNOWN and (best_gesture == GestureType.UNKNOWN
                                               or c > best_confidence):
@@ -133,9 +152,11 @@ def main() -> None:
             landmarks1, palm1, label1 = hand1[0], hand1[1], hand1[5]
             yaw, tilt = hand_orientation(landmarks1, label1)
             galaxy.set_orientation(yaw, tilt)
+            galaxy.set_zoom(0.75 + (hand_scale(landmarks1) - 0.06) * 2.6)
             palm_screen = (palm1[0] * w, palm1[1] * h)
         else:
             galaxy.set_orientation(DEFAULT_YAW, DEFAULT_TILT)
+            galaxy.set_zoom(1.0)
 
         if swipe_display is not None and time.monotonic() < swipe_display_until:
             state.gesture = swipe_display
@@ -160,7 +181,8 @@ def main() -> None:
                          else PINCH_RATIO)
                 if ratio < limit:
                     if galaxy.grabbed is None:
-                        galaxy.grab(pp_screen)
+                        if galaxy.grab(pp_screen):
+                            sounds.grab()
                     else:
                         galaxy.drag(pp_screen)
                 else:
@@ -172,15 +194,77 @@ def main() -> None:
         galaxy_anchor = (w / 2.0, h / 2.0)
         galaxy.update(dt, effective_gesture)
         starfield.update(dt)
+        shake *= math.exp(-7.0 * dt)
+        if shake < 0.3:
+            shake = 0.0
 
         renderer.draw_frame(last_frame, dim=140)
         starfield.draw(renderer.surface, galaxy.yaw)
-        galaxy.draw(renderer.surface, galaxy_anchor, elapsed)
+        if shake > 0.0:
+            ox = random.uniform(-shake, shake)
+            oy = random.uniform(-shake, shake)
+            galaxy.draw(renderer.surface, (galaxy_anchor[0] + ox,
+                                           galaxy_anchor[1] + oy), elapsed)
+        else:
+            galaxy.draw(renderer.surface, galaxy_anchor, elapsed)
+        lasers.update(dt)
+        now = time.monotonic()
+        hit_any = False
+        for shot in lasers.shots:
+            hits = galaxy.blast((shot["x"], shot["y"]))
+            asteroids_hit = hits["asteroids"]
+            comets_hit = hits["comets"]
+            if not asteroids_hit and not comets_hit:
+                continue
+            hit_any = True
+            if streak <= 0 or now > streak_until:
+                streak = 1
+            else:
+                streak = min(streak + 1, 20)
+            streak_until = now + 3.0
+            debris.spawn_one(shot["x"], shot["y"], vx=0, vy=0, size=18,
+                             max_life=0.16, color=(255, 250, 210))
+            for a in asteroids_hit:
+                sx, sy = a.get("screen", (shot["x"], shot["y"]))
+                score += streak
+                for _ in range(18):
+                    ang = random.uniform(0, math.tau)
+                    sp = random.uniform(30, 220)
+                    debris.spawn_one(
+                        sx, sy, vx=math.cos(ang) * sp, vy=math.sin(ang) * sp,
+                        size=random.uniform(1.5, 3.5),
+                        max_life=random.uniform(0.4, 0.9),
+                        color=(215, 155, 95))
+            for c in comets_hit:
+                sx, sy = c.get("screen", (shot["x"], shot["y"]))
+                comets_destroyed += 1
+                score += 5 + streak
+                shake = max(shake, 8.0)
+                renderer.cue_flash(90, (150, 215, 255))
+                sounds.comet()
+                debris.spawn_one(sx, sy, vx=0, vy=0, size=26,
+                                 max_life=0.25, color=(255, 255, 240))
+                for _ in range(40):
+                    ang = random.uniform(0, math.tau)
+                    sp = random.uniform(40, 300)
+                    debris.spawn_one(
+                        sx, sy, vx=math.cos(ang) * sp, vy=math.sin(ang) * sp,
+                        size=random.uniform(1.0, 3.0),
+                        max_life=random.uniform(0.5, 1.1),
+                        color=(160, 225, 255))
+        if hit_any:
+            sounds.hit()
+            renderer.cue_flash(34, (255, 220, 150))
+        lasers.draw(renderer.surface)
+        renderer.draw_particles(debris)
+        debris.update(dt)
+        renderer.decay_flash(dt)
 
         gesture_colors = {
             "OPEN_PALM": (120, 230, 160),
             "FIST": (255, 150, 110),
             "PINCH": (255, 215, 120),
+            "POINT": (130, 230, 255),
             "UNKNOWN": (175, 185, 205),
         }
         gcolor = gesture_colors.get(state.gesture, (150, 195, 255))
@@ -188,8 +272,15 @@ def main() -> None:
             ("kv", "Gesture", state.gesture, gcolor),
             ("bar", "Confidence", state.confidence, (80, 145, 255)),
             ("kv", "Stretch", f"{galaxy.stretch:.2f}x", (205, 215, 240)),
+            ("kv", "Zoom", f"{galaxy.zoom:.2f}x", (180, 215, 130)),
+            ("kv", "Score", f"{score}", (255, 200, 130)),
+            ("kv", "Comets", f"{comets_destroyed}", (150, 215, 255)) if comets_destroyed
+            else None,
             ("kv", "FPS", f"{fps:.0f} / {config.TARGET_FPS}", (140, 190, 160)),
         ]
+        if streak >= 2 and now <= streak_until:
+            rows.append(("header", f"STREAK x{streak}", (255, 120, 90)))
+        rows = [r for r in rows if r is not None]
         if galaxy.grabbed is not None:
             rows.append(("kv", "Planet", galaxy.grabbed.name, (255, 222, 145)))
             rows.append(("small", FACTS.get(galaxy.grabbed.name, ""), (150, 175, 215)))
@@ -209,8 +300,9 @@ def main() -> None:
                          "Camera is disconnected" if not camera.active
                          else "Show a hand to the camera", (170, 180, 200)))
         renderer.render_hud(rows)
-        hint = ("TWIST WRIST = ROTATE   |   TWO HANDS = STRETCH   |   "
-                "PINCH HAND 2 = GRAB   |   SWIPE = FLING   |   FIST = COLLAPSE")
+        hint = ("POINT = SHOOT   |   PINCH = GRAB   |   TWO HANDS = STRETCH   |   "
+                "HAND CLOSER = ZOOM   |   TWIST = ROTATE   |   SWIPE = FLING   |   "
+                "FIST = COLLAPSE")
         hint_surf = renderer.small_font.render(hint, True, (185, 198, 225))
         hw = hint_surf.get_width()
         hs = pygame.Surface((hw + 28, 30), pygame.SRCALPHA)
@@ -218,6 +310,7 @@ def main() -> None:
         hs.blit(hint_surf, (14, 6))
         renderer.surface.blit(hs, ((renderer.width - hw - 28) // 2,
                                    renderer.height - 42))
+        renderer.draw_flash()
         renderer.present()
 
     camera.stop()

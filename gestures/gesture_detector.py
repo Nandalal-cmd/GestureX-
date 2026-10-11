@@ -5,6 +5,7 @@ from gestures.gesture_types import GestureType
 from tracking.landmarks import (
     INDEX_TIP,
     MIDDLE_MCP,
+    MIDDLE_TIP,
     PINKY_TIP,
     RING_TIP,
     THUMB_TIP,
@@ -89,6 +90,12 @@ def detect_pose(landmarks, sensitivity: float = 0.5):
         ratio = pinch_ratio(landmarks)
         limit = PINCH_RATIO * (1.5 - sensitivity)
         return GestureType.PINCH, clamp(0.55 + 0.45 * (1.0 - ratio / limit))
+
+    if (_finger_extended(landmarks, INDEX_TIP, 6) and
+            not _finger_extended(landmarks, MIDDLE_TIP, 10) and
+            not _finger_extended(landmarks, RING_TIP, 14) and
+            not _finger_extended(landmarks, PINKY_TIP, 18)):
+        return GestureType.POINT, 0.78
 
     extended = extended_fingers(landmarks)
     if extended >= 3:

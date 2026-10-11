@@ -124,6 +124,28 @@ def test_peace_sign_is_not_fist():
     assert 0.0 <= conf <= 1.0
 
 
+def point():
+    pts = [(0.5, 0.80)] * 21
+    pts[0] = (0.5, 0.80)
+    pts[9] = (0.5, 0.58)
+    pts[4] = (0.35, 0.70)
+    pts[6] = (0.5, 0.66)
+    pts[8] = (0.5, 0.28)
+    pts[10] = (0.5, 0.72)
+    pts[12] = (0.5, 0.76)
+    pts[14] = (0.5, 0.72)
+    pts[16] = (0.5, 0.76)
+    pts[18] = (0.5, 0.73)
+    pts[20] = (0.5, 0.76)
+    return make_landmarks(pts)
+
+
+def test_point_detected():
+    gesture, conf = detect_pose(point())
+    assert gesture == GestureType.POINT
+    assert 0.0 <= conf <= 1.0
+
+
 def test_extension_is_rotation_invariant():
     for angle in (0, 45, 90, 135, 180, -60):
         assert extended_fingers(_rotate(open_palm(), angle)) == 4, angle

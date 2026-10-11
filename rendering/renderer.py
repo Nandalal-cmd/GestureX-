@@ -1,3 +1,5 @@
+import math
+
 import cv2
 import numpy as np
 import pygame
@@ -23,6 +25,8 @@ class Renderer:
         self.title_font = pygame.font.SysFont("consolas", 22, bold=True)
         self.small_font = pygame.font.SysFont("consolas", 14)
         self.label_font = pygame.font.SysFont("consolas", 17)
+        self._flash_alpha = 0.0
+        self._flash_color = (255, 255, 255)
 
     def draw_frame(self, frame_bgr, dim: int = 0):
         if frame_bgr is None:
@@ -146,6 +150,23 @@ class Renderer:
                 cy += row_h[kind]
 
         self.surface.blit(panel, (x, y))
+
+    def cue_flash(self, alpha: int, color=(255, 255, 255)):
+        self._flash_alpha = max(self._flash_alpha, float(alpha))
+        self._flash_color = color
+
+    def decay_flash(self, dt: float):
+        self._flash_alpha *= math.exp(-14.0 * dt)
+        if self._flash_alpha < 1.0:
+            self._flash_alpha = 0.0
+
+    def draw_flash(self):
+        a = int(self._flash_alpha)
+        if a <= 0:
+            return
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        overlay.fill((*self._flash_color, a))
+        self.surface.blit(overlay, (0, 0))
 
     def present(self):
         pygame.display.flip()

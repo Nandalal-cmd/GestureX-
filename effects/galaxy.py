@@ -68,6 +68,8 @@ class _Planet:
 
 class Galaxy:
     FOCAL = 700.0
+    ZOOM_MIN = 0.75
+    ZOOM_MAX = 1.6
 
     def __init__(self):
         self.bodies = [_Planet(*defn) for defn in PLANET_DEFS]
@@ -94,6 +96,8 @@ class Galaxy:
         self.target_tilt = 0.45
         self.yaw = 0.0
         self.target_yaw = 0.0
+        self.zoom = 1.0
+        self.target_zoom = 1.0
         self.grabbed = None
         self.grab_pos = None
         self._font = None
@@ -101,6 +105,9 @@ class Galaxy:
     def set_orientation(self, yaw: float, tilt: float):
         self.target_yaw = max(-1.1, min(1.1, yaw))
         self.target_tilt = max(0.05, min(1.3, tilt))
+
+    def set_zoom(self, zoom: float):
+        self.target_zoom = max(self.ZOOM_MIN, min(self.ZOOM_MAX, zoom))
 
     def set_stretch(self, s):
         self.target_stretch = max(0.35, min(2.4, s))
@@ -113,6 +120,7 @@ class Galaxy:
         self.stretch += (self.target_stretch - self.stretch) * k
         self.yaw += (self.target_yaw - self.yaw) * min(1.0, dt * 4.0)
         self.tilt += (self.target_tilt - self.tilt) * min(1.0, dt * 4.0)
+        self.zoom += (self.target_zoom - self.zoom) * min(1.0, dt * 4.0)
         want = 1.0 if gesture == GestureType.FIST else 0.0
         self.collapse += (want - self.collapse) * min(1.0, dt * 6.0)
         self.spin *= math.exp(-1.8 * dt)
@@ -134,6 +142,8 @@ class Galaxy:
         Z = y2 * math.sin(self.tilt) + z2 * math.cos(self.tilt)
         x2 = x * math.cos(self.yaw) - Z * math.sin(self.yaw)
         Z2 = x * math.sin(self.yaw) + Z * math.cos(self.yaw)
+        x2 *= self.zoom
+        Y *= self.zoom
         scale = self.FOCAL / (self.FOCAL + Z2)
         return x2 * scale, Y * scale, scale, Z2
 
@@ -164,6 +174,25 @@ class Galaxy:
     def release(self):
         self.grabbed = None
         self.grab_pos = None
+
+    def blast(self, pos, radius: float = 6.0):
+        """Destroy asteroids/comets within radius of pos; return hit buckets."""
+        hits = {"asteroids": [], "comets": []}
+        for a in self.asteroids:
+            s = a.get("screen")
+            if s is not None and math.hypot(s[0] - pos[0],
+                                            s[1] - pos[1]) <= a.get("px", 2) + radius:
+                hits["asteroids"].append(a)
+        for c in self.comets:
+            s = c.get("screen")
+            if s is not None and math.hypot(s[0] - pos[0],
+                                            s[1] - pos[1]) <= c.get("px", 3) + radius + 4:
+                hits["comets"].append(c)
+        for a in hits["asteroids"]:
+            self.asteroids.remove(a)
+        for c in hits["comets"]:
+            self.comets.remove(c)
+        return hits
 
     def _orbit_path(self, body, center):
         pts = []
@@ -257,6 +286,8 @@ class Galaxy:
                 math.cos(a["phase"]) * r, math.sin(a["phase"]) * r, a["elev"])
             pos = (center[0] + x, center[1] + y)
             sz = max(1, int(a["size"] * scale))
+            a["screen"] = pos
+            a["px"] = sz
             items.append((z, self._draw_rock, surface, pos, sz))
 
         for c in self.comets:
@@ -268,6 +299,7 @@ class Galaxy:
             head = (center[0] + x, center[1] + y)
             c["screen"] = head
             c["z"] = z
+            c["px"] = max(2, int(3 * scale))
             items.append((z, self._draw_comet, surface, c, head, scale,
                           stretch_k, center))
 

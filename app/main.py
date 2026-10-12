@@ -10,6 +10,7 @@ from camera.camera import Camera
 from effects.galaxy import FACTS, Galaxy
 from effects.lasers import LaserSystem
 from effects.meteors import MeteorShower
+from effects.shockwaves import Shockwaves
 from effects.starfield import Starfield
 from effects.trails import Trail
 from gestures.gesture_detector import (
@@ -80,6 +81,7 @@ def main() -> None:
     lasers = LaserSystem(config.LASER_SPEED, config.LASER_COOLDOWN)
     shower = MeteorShower()
     debris = ParticleSystem(400)
+    shockwaves = Shockwaves()
     sounds = SoundKit(config.SOUND_ENABLED)
     score = 0
     best = BestScore()
@@ -189,6 +191,9 @@ def main() -> None:
                     if galaxy.grabbed is None:
                         if galaxy.grab(pp_screen):
                             sounds.grab()
+                            shockwaves.spawn(pp_screen[0], pp_screen[1],
+                                             (130, 255, 180), growth=340,
+                                             life=0.35)
                     else:
                         galaxy.drag(pp_screen)
                 else:
@@ -240,6 +245,7 @@ def main() -> None:
             for a in asteroids_hit:
                 sx, sy = a.get("screen", (shot["x"], shot["y"]))
                 score += streak
+                shockwaves.spawn(sx, sy, (255, 215, 140), growth=380)
                 for _ in range(18):
                     ang = random.uniform(0, math.tau)
                     sp = random.uniform(30, 220)
@@ -255,6 +261,7 @@ def main() -> None:
                 shake = max(shake, 8.0)
                 renderer.cue_flash(90, (150, 215, 255))
                 sounds.comet()
+                shockwaves.spawn(sx, sy, (140, 225, 255), growth=700, life=0.55)
                 debris.spawn_one(sx, sy, vx=0, vy=0, size=26,
                                  max_life=0.25, color=(255, 255, 240))
                 for _ in range(40):
@@ -275,6 +282,7 @@ def main() -> None:
                 renderer.cue_flash(40, (255, 230, 180))
                 for m in meteors_hit:
                     score += 2
+                    shockwaves.spawn(m["x"], m["y"], (255, 170, 110), growth=320)
                     debris.spawn_one(m["x"], m["y"], vx=0, vy=0, size=14,
                                      max_life=0.15, color=(255, 245, 220))
                     for _ in range(14):
@@ -288,6 +296,8 @@ def main() -> None:
                             color=(255, 180, 120))
         lasers.draw(renderer.surface)
         shower.draw(renderer.surface)
+        shockwaves.update(world_dt)
+        shockwaves.draw(renderer.surface)
         if score > best.value and now >= best_persist_until:
             if best.update(score):
                 best_banner_until = now + 4.0

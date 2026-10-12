@@ -6,10 +6,15 @@ def test_shower_starts_after_delay():
     assert m.meteors == []
     for _ in range(11):
         m.update(0.1, 640, 360)
-    assert len(m.meteors) == 7
     assert m.just_started is True
     m.just_started = False
     assert m.active > 0
+
+
+def test_shower_spawns_burst():
+    m = MeteorShower(burst=7)
+    m._spawn_shower(640, 360)
+    assert len(m.meteors) == 7
 
 
 def test_meteors_cross_screen_and_expire():

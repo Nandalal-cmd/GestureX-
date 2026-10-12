@@ -134,6 +134,24 @@ class Galaxy:
             a["phase"] += a["speed"] * BASE_SPEED * dt * (1.0 - 0.35 * self.collapse)
         for c in self.comets:
             c["phase"] += c["speed"] * dt * (1.0 - 0.35 * self.collapse)
+        self._respawn(dt)
+
+    def _respawn(self, dt):
+        """Replenish destroyed asteroids/comets so the belt never empties."""
+        if len(self.asteroids) < BELT_COUNT and random.random() < dt * 3.0:
+            self.asteroids.append({
+                "phase": random.uniform(0, math.tau),
+                "orbit": random.uniform(214, 222),
+                "speed": random.uniform(0.42, 0.55),
+                "size": random.uniform(1.0, 2.6),
+                "elev": random.uniform(-0.06, 0.06),
+            })
+        if len(self.comets) < len(COMET_DEFS) and random.random() < dt * 0.7:
+            a, e, sp, _, col = random.choice(COMET_DEFS)
+            self.comets.append({
+                "a": a, "ecc": e, "speed": sp, "phase": random.uniform(0, math.tau),
+                "color": col, "screen": None, "z": 0.0,
+            })
 
     def _project_point(self, x, y, elev):
         y2 = y * math.cos(elev)

@@ -2,7 +2,7 @@ import math
 
 import pygame
 
-from effects.galaxy import COMET_DEFS, FACTS, PLANET_DEFS, Galaxy
+from effects.galaxy import BELT_COUNT, COMET_DEFS, FACTS, PLANET_DEFS, Galaxy
 from gestures.gesture_types import GestureType
 
 
@@ -86,3 +86,23 @@ def test_zoom_clamped_and_smoothed():
     for _ in range(200):
         g.update(0.016, GestureType.UNKNOWN)
     assert abs(g.zoom - g.target_zoom) < 0.05
+
+
+def test_asteroids_respawn_never_exceed_belt():
+    g = Galaxy()
+    g.asteroids.clear()
+    for _ in range(4000):
+        g.update(0.016, GestureType.UNKNOWN)
+    assert len(g.asteroids) > 0
+    assert len(g.asteroids) <= BELT_COUNT
+
+
+def test_comets_respawn():
+    g = Galaxy()
+    g.comets.clear()
+    for _ in range(4000):
+        g.update(0.016, GestureType.UNKNOWN)
+    assert len(g.comets) > 0
+    assert len(g.comets) <= len(COMET_DEFS)
+    assert all({"a", "ecc", "speed", "phase", "color"} <= set(c)
+               for c in g.comets)

@@ -128,7 +128,8 @@ def point():
     pts = [(0.5, 0.80)] * 21
     pts[0] = (0.5, 0.80)
     pts[9] = (0.5, 0.58)
-    pts[4] = (0.35, 0.70)
+    pts[3] = (0.45, 0.76)
+    pts[4] = (0.50, 0.77)
     pts[6] = (0.5, 0.66)
     pts[8] = (0.5, 0.28)
     pts[10] = (0.5, 0.72)
@@ -138,6 +139,29 @@ def point():
     pts[18] = (0.5, 0.73)
     pts[20] = (0.5, 0.76)
     return make_landmarks(pts)
+
+
+def gun():
+    pts = [(0.5, 0.80)] * 21
+    pts[0] = (0.5, 0.80)
+    pts[9] = (0.5, 0.58)
+    pts[3] = (0.40, 0.70)
+    pts[4] = (0.28, 0.58)
+    pts[6] = (0.5, 0.66)
+    pts[8] = (0.5, 0.28)
+    pts[10] = (0.5, 0.72)
+    pts[12] = (0.5, 0.76)
+    pts[14] = (0.5, 0.72)
+    pts[16] = (0.5, 0.76)
+    pts[18] = (0.5, 0.73)
+    pts[20] = (0.5, 0.76)
+    return make_landmarks(pts)
+
+
+def test_gun_detected_and_not_pinch():
+    gesture, conf = detect_pose(gun())
+    assert gesture == GestureType.GUN
+    assert 0.0 <= conf <= 1.0
 
 
 def test_point_detected():

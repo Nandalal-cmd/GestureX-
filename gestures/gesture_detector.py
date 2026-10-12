@@ -71,6 +71,20 @@ def fist_score(landmarks) -> float:
 FINGER_NAMES = ("THUMB", "INDEX", "MIDDLE", "RING", "PINKY")
 
 
+def _thumb_extended(landmarks) -> bool:
+    thumb_tip, thumb_ip = landmarks[THUMB_TIP], landmarks[3]
+    wrist = landmarks[WRIST]
+    return _dist(thumb_tip, wrist) > _dist(thumb_ip, wrist) * 1.15
+
+
+def is_gun(landmarks) -> bool:
+    return (_finger_extended(landmarks, INDEX_TIP, 6)
+            and _thumb_extended(landmarks)
+            and not _finger_extended(landmarks, MIDDLE_TIP, 10)
+            and not _finger_extended(landmarks, RING_TIP, 14)
+            and not _finger_extended(landmarks, PINKY_TIP, 18))
+
+
 def finger_states(landmarks) -> dict:
     """Return {finger_name: bool extended} for all five fingers."""
     wrist = landmarks[WRIST]
@@ -90,6 +104,9 @@ def detect_pose(landmarks, sensitivity: float = 0.5):
         ratio = pinch_ratio(landmarks)
         limit = PINCH_RATIO * (1.5 - sensitivity)
         return GestureType.PINCH, clamp(0.55 + 0.45 * (1.0 - ratio / limit))
+
+    if is_gun(landmarks):
+        return GestureType.GUN, 0.75
 
     if (_finger_extended(landmarks, INDEX_TIP, 6) and
             not _finger_extended(landmarks, MIDDLE_TIP, 10) and

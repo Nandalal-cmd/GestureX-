@@ -194,9 +194,12 @@ def main() -> None:
                 galaxy.set_stretch(0.85)
 
         galaxy_anchor = (w / 2.0, h / 2.0)
-        galaxy.update(dt, effective_gesture)
+        warping = any(entry[2] == GestureType.GUN for entry in per_hand)
+        speed_k = config.TIME_WARP_FACTOR if warping else 1.0
+        world_dt = dt * speed_k
+        galaxy.update(world_dt, effective_gesture)
         starfield.update(dt)
-        shower.update(dt, w, h)
+        shower.update(world_dt, w, h)
         if shower.just_started:
             sounds.shower()
             shower.just_started = False
@@ -213,7 +216,7 @@ def main() -> None:
                                            galaxy_anchor[1] + oy), elapsed)
         else:
             galaxy.draw(renderer.surface, galaxy_anchor, elapsed)
-        lasers.update(dt)
+        lasers.update(world_dt)
         now = time.monotonic()
         hit_any = False
         for shot in lasers.shots:
@@ -282,7 +285,7 @@ def main() -> None:
         lasers.draw(renderer.surface)
         shower.draw(renderer.surface)
         renderer.draw_particles(debris)
-        debris.update(dt)
+        debris.update(world_dt)
         renderer.decay_flash(dt)
 
         gesture_colors = {
@@ -290,12 +293,14 @@ def main() -> None:
             "FIST": (255, 150, 110),
             "PINCH": (255, 215, 120),
             "POINT": (130, 230, 255),
+            "GUN": (150, 140, 255),
             "UNKNOWN": (175, 185, 205),
         }
         gcolor = gesture_colors.get(state.gesture, (150, 195, 255))
         rows = [
             ("kv", "Gesture", state.gesture, gcolor),
             ("bar", "Confidence", state.confidence, (80, 145, 255)),
+            ("kv", "Time", f"{(1.0 if not warping else config.TIME_WARP_FACTOR):.2f}x", (160, 150, 255)),
             ("kv", "Stretch", f"{galaxy.stretch:.2f}x", (205, 215, 240)),
             ("kv", "Zoom", f"{galaxy.zoom:.2f}x", (180, 215, 130)),
             ("kv", "Score", f"{score}", (255, 200, 130)),
@@ -307,6 +312,8 @@ def main() -> None:
             rows.append(("header", f"STREAK x{streak}", (255, 120, 90)))
         if shower.active > 0:
             rows.append(("header", "METEOR SHOWER!", (255, 165, 90)))
+        if warping:
+            rows.append(("header", "TIME WARP", (150, 140, 255)))
         rows = [r for r in rows if r is not None]
         if galaxy.grabbed is not None:
             rows.append(("kv", "Planet", galaxy.grabbed.name, (255, 222, 145)))
@@ -327,9 +334,9 @@ def main() -> None:
                          "Camera is disconnected" if not camera.active
                          else "Show a hand to the camera", (170, 180, 200)))
         renderer.render_hud(rows)
-        hint = ("POINT = SHOOT   |   PINCH = GRAB   |   TWO HANDS = STRETCH   |   "
-                "HAND CLOSER = ZOOM   |   TWIST = ROTATE   |   SWIPE = FLING   |   "
-                "FIST = COLLAPSE")
+        hint = ("POINT = SHOOT   |   GUN = TIME WARP   |   PINCH = GRAB   |   "
+                "TWO HANDS = STRETCH   |   HAND CLOSER = ZOOM   |   TWIST = ROTATE   |   "
+                "SWIPE = FLING   |   FIST = COLLAPSE")
         hint_surf = renderer.small_font.render(hint, True, (185, 198, 225))
         hw = hint_surf.get_width()
         hs = pygame.Surface((hw + 28, 30), pygame.SRCALPHA)

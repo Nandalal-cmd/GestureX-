@@ -7,6 +7,7 @@ class GestureType(str, Enum):
     FIST = "FIST"
     PINCH = "PINCH"
     POINT = "POINT"
+    GUN = "GUN"
     SWIPE_LEFT = "SWIPE_LEFT"
     SWIPE_RIGHT = "SWIPE_RIGHT"
     SWIPE_UP = "SWIPE_UP"

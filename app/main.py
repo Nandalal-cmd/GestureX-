@@ -30,6 +30,7 @@ from tracking.hand_tracker import HandTracker
 from tracking.landmarks import INDEX_MCP, INDEX_TIP, MIDDLE_MCP, PINKY_MCP, WRIST
 from ui.main_window import UIState
 from utils.logger import setup_logging
+from utils.scores import BestScore
 from utils.sounds import SoundKit
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,9 @@ def main() -> None:
     debris = ParticleSystem(400)
     sounds = SoundKit(config.SOUND_ENABLED)
     score = 0
+    best = BestScore()
+    best_banner_until = 0.0
+    best_persist_until = 0.0
     comets_destroyed = 0
     streak = 0
     streak_until = 0.0
@@ -284,6 +288,10 @@ def main() -> None:
                             color=(255, 180, 120))
         lasers.draw(renderer.surface)
         shower.draw(renderer.surface)
+        if score > best.value and now >= best_persist_until:
+            if best.update(score):
+                best_banner_until = now + 4.0
+            best_persist_until = now + 1.0
         renderer.draw_particles(debris)
         debris.update(world_dt)
         renderer.decay_flash(dt)
@@ -304,6 +312,7 @@ def main() -> None:
             ("kv", "Stretch", f"{galaxy.stretch:.2f}x", (205, 215, 240)),
             ("kv", "Zoom", f"{galaxy.zoom:.2f}x", (180, 215, 130)),
             ("kv", "Score", f"{score}", (255, 200, 130)),
+            ("kv", "Best", f"{best.value}", (255, 225, 160)),
             ("kv", "Comets", f"{comets_destroyed}", (150, 215, 255)) if comets_destroyed
             else None,
             ("kv", "FPS", f"{fps:.0f} / {config.TARGET_FPS}", (140, 190, 160)),
@@ -314,6 +323,8 @@ def main() -> None:
             rows.append(("header", "METEOR SHOWER!", (255, 165, 90)))
         if warping:
             rows.append(("header", "TIME WARP", (150, 140, 255)))
+        if now < best_banner_until:
+            rows.append(("header", "NEW BEST!", (255, 225, 140)))
         rows = [r for r in rows if r is not None]
         if galaxy.grabbed is not None:
             rows.append(("kv", "Planet", galaxy.grabbed.name, (255, 222, 145)))

@@ -9,6 +9,7 @@ from app import config
 from camera.camera import Camera
 from effects.galaxy import FACTS, Galaxy
 from effects.lasers import LaserSystem
+from effects.meteors import MeteorShower
 from effects.starfield import Starfield
 from effects.trails import Trail
 from gestures.gesture_detector import (
@@ -76,6 +77,7 @@ def main() -> None:
     renderer = Renderer(1280, 720)
     starfield = Starfield(renderer.width, renderer.height)
     lasers = LaserSystem(config.LASER_SPEED, config.LASER_COOLDOWN)
+    shower = MeteorShower()
     debris = ParticleSystem(400)
     sounds = SoundKit(config.SOUND_ENABLED)
     score = 0
@@ -194,6 +196,10 @@ def main() -> None:
         galaxy_anchor = (w / 2.0, h / 2.0)
         galaxy.update(dt, effective_gesture)
         starfield.update(dt)
+        shower.update(dt, w, h)
+        if shower.just_started:
+            sounds.shower()
+            shower.just_started = False
         shake *= math.exp(-7.0 * dt)
         if shake < 0.3:
             shake = 0.0
@@ -255,7 +261,26 @@ def main() -> None:
         if hit_any:
             sounds.hit()
             renderer.cue_flash(34, (255, 220, 150))
+        for shot in lasers.shots:
+            meteors_hit = shower.hit((shot["x"], shot["y"]))
+            if meteors_hit:
+                sounds.hit()
+                renderer.cue_flash(40, (255, 230, 180))
+                for m in meteors_hit:
+                    score += 2
+                    debris.spawn_one(m["x"], m["y"], vx=0, vy=0, size=14,
+                                     max_life=0.15, color=(255, 245, 220))
+                    for _ in range(14):
+                        ang = random.uniform(0, math.tau)
+                        sp = random.uniform(25, 180)
+                        debris.spawn_one(
+                            m["x"], m["y"], vx=math.cos(ang) * sp,
+                            vy=math.sin(ang) * sp,
+                            size=random.uniform(1.5, 3.0),
+                            max_life=random.uniform(0.3, 0.7),
+                            color=(255, 180, 120))
         lasers.draw(renderer.surface)
+        shower.draw(renderer.surface)
         renderer.draw_particles(debris)
         debris.update(dt)
         renderer.decay_flash(dt)
@@ -280,6 +305,8 @@ def main() -> None:
         ]
         if streak >= 2 and now <= streak_until:
             rows.append(("header", f"STREAK x{streak}", (255, 120, 90)))
+        if shower.active > 0:
+            rows.append(("header", "METEOR SHOWER!", (255, 165, 90)))
         rows = [r for r in rows if r is not None]
         if galaxy.grabbed is not None:
             rows.append(("kv", "Planet", galaxy.grabbed.name, (255, 222, 145)))

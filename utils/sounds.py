@@ -50,6 +50,9 @@ class SoundKit:
         self._comet = pygame.sndarray.make_sound(
             np.asarray(self._tone(420, 140, 0.3, 0.45, "sine") * 32000,
                        dtype=np.int16))
+        self._shower = pygame.sndarray.make_sound(
+            np.asarray(self._tone(220, 1500, 0.8, 0.16, "saw") * 32000,
+                       dtype=np.int16))
 
     def shoot(self):
         if self.enabled:
@@ -66,3 +69,7 @@ class SoundKit:
     def comet(self):
         if self.enabled:
             self._comet.play()
+
+    def shower(self):
+        if self.enabled:
+            self._shower.play()

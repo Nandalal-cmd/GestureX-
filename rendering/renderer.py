@@ -79,78 +79,7 @@ class Renderer:
         self.surface.blit(glow, (0, 0))
 
     def render_hud(self, rows, x: int = 16, y: int = 16, width: int = 340):
-        """rows: list of tuples describing the HUD content:
-        ("header", text, color)
-        ("kv", label, value, value_color)
-        ("bar", label, pct, color)
-        ("fingers", label, open_count, total)
-        ("small", text, color)
-        """
-        pad = 14
-        inner_w = width - pad * 2
-        row_h = {"header": 30, "kv": 26, "bar": 34, "fingers": 30, "small": 19}
-        title_h = 46
-        height = title_h + sum(row_h[r[0]] for r in rows) + pad
-
-        panel = pygame.Surface((width, height), pygame.SRCALPHA)
-        pygame.draw.rect(panel, (10, 14, 26, 220), panel.get_rect(), border_radius=12)
-        pygame.draw.rect(panel, (66, 84, 124, 230), panel.get_rect(), 1, border_radius=12)
-        pygame.draw.rect(panel, (70, 130, 255, 255), (0, 0, width, 3), border_radius=1)
-
-        title = self.title_font.render("GESTURE FX", True, (235, 240, 250))
-        panel.blit(title, (pad, 10))
-        sub = self.small_font.render("solar system controller", True, (110, 150, 220))
-        panel.blit(sub, (width - pad - sub.get_width(), 16))
-        pygame.draw.line(panel, (58, 74, 110), (pad, title_h - 6),
-                         (width - pad, title_h - 6), 1)
-
-        cy = title_h
-        for row in rows:
-            kind = row[0]
-            if kind == "header":
-                _, text, color = row
-                panel.blit(self.label_font.render(text, True, color), (pad, cy + 4))
-                pygame.draw.line(panel, (50, 62, 92), (pad, cy + 26),
-                                 (width - pad, cy + 26), 1)
-                cy += row_h[kind]
-            elif kind == "kv":
-                _, label, value, color = row
-                panel.blit(self.label_font.render(label, True, (150, 160, 185)), (pad, cy + 3))
-                v = self.font.render(str(value), True, color)
-                panel.blit(v, (width - pad - v.get_width(), cy + 1))
-                cy += row_h[kind]
-            elif kind == "bar":
-                _, label, pct, color = row
-                panel.blit(self.label_font.render(label, True, (150, 160, 185)), (pad, cy + 4))
-                bx, by, bw, bh = pad + 110, cy + 8, inner_w - 110 - 44, 12
-                pygame.draw.rect(panel, (30, 38, 58), (bx, by, bw, bh), border_radius=6)
-                fill_w = int(bw * max(0.0, min(1.0, pct)))
-                if fill_w > 0:
-                    pygame.draw.rect(panel, color, (bx, by, fill_w, bh), border_radius=6)
-                pct_txt = self.small_font.render(f"{int(pct * 100)}%", True, (210, 218, 235))
-                panel.blit(pct_txt, (width - pad - pct_txt.get_width(), cy + 4))
-                cy += row_h[kind]
-            elif kind == "fingers":
-                _, label, open_count, total = row
-                panel.blit(self.label_font.render(label, True, (150, 160, 185)), (pad, cy + 5))
-                dx = pad + 110
-                for i in range(total):
-                    filled = i < open_count
-                    color = (90, 220, 150) if filled else (44, 54, 78)
-                    pygame.draw.circle(panel, color, (dx + i * 20, cy + 13), 7)
-                    if filled:
-                        pygame.draw.circle(panel, (220, 255, 238),
-                                           (dx + i * 20, cy + 13), 7, 1)
-                cnt = self.label_font.render(f"{open_count}/{total}", True, (220, 228, 245))
-                panel.blit(cnt, (width - pad - cnt.get_width(), cy + 5))
-                cy += row_h[kind]
-            elif kind == "small":
-                _, text, color = row
-                panel.blit(self.small_font.render(text, True, color), (pad, cy + 3))
-                cy += row_h[kind]
-
-        self.surface.blit(panel, (x, y))
-
+        return None
     def cue_flash(self, alpha: int, color=(255, 255, 255)):
         self._flash_alpha = max(self._flash_alpha, float(alpha))
         self._flash_color = color

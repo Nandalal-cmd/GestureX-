@@ -354,7 +354,6 @@ def main() -> None:
             rows.append(("small",
                          "Camera is disconnected" if not camera.active
                          else "Show a hand to the camera", (170, 180, 200)))
-        renderer.render_hud(rows)
         hint = ("POINT = SHOOT   |   GUN = TIME WARP   |   PINCH = GRAB   |   "
                 "TWO HANDS = STRETCH   |   HAND CLOSER = ZOOM   |   TWIST = ROTATE   |   "
                 "SWIPE = FLING   |   FIST = COLLAPSE")
@@ -365,7 +364,6 @@ def main() -> None:
         hs.blit(hint_surf, (14, 6))
         renderer.surface.blit(hs, ((renderer.width - hw - 28) // 2,
                                    renderer.height - 42))
-        renderer.draw_flash()
         renderer.present()
 
     camera.stop()

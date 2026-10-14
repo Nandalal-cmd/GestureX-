@@ -14,12 +14,6 @@ class SoundKit:
         if enabled and self._init_mixer():
             self._build()
             self.enabled = True
-        try:
-            pygame.mixer.quit()
-            pygame.mixer.init(self.SAMPLE_RATE, -16, 1, 512)
-            return True
-        except Exception:
-            return False
 
     def _tone(self, f0, f1, dur, vol=0.35, shape="sine"):
         n = int(self.SAMPLE_RATE * dur)

@@ -194,9 +194,12 @@ class Galaxy:
         self.grab_pos = None
 
     def blast(self, pos, radius: float = 6.0):
-        """Destroy asteroids/comets within radius of pos; return hit buckets."""
+        """Destroy asteroids/comets within radius of pos; return hit buckets.
+
+        Large asteroids split into two smaller fragments instead of just
+        vanishing, keeping the belt lively.
+        """
         hits = {"asteroids": [], "comets": []}
-        from app import config
         for a in self.asteroids:
             s = a.get("screen")
             if s is not None and math.hypot(s[0] - pos[0],
@@ -209,6 +212,15 @@ class Galaxy:
                 hits["comets"].append(c)
         for a in hits["asteroids"]:
             self.asteroids.remove(a)
+            if a.get("size", 0.0) >= 1.7 and len(self.asteroids) < BELT_COUNT + 12:
+                for sign in (-1.0, 1.0):
+                    self.asteroids.append({
+                        "phase": a["phase"] + sign * 0.02,
+                        "orbit": a["orbit"] + sign * 1.6,
+                        "speed": a["speed"] + sign * 0.05,
+                        "size": a["size"] * 0.55,
+                        "elev": a["elev"] + sign * 0.01,
+                    })
         for c in hits["comets"]:
             self.comets.remove(c)
         return hits

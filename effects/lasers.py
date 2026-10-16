@@ -13,15 +13,24 @@ class LaserSystem:
         self.life = life
         self.shots = []
         self._last = -1e9
+        self.heat = 0.0
+        self.heat_per_shot = 0.18
+        self.cool_rate = 0.6
+        self.overheat = False
 
     def reset(self):
         self.shots = []
         self._last = -1e9
 
     def fire(self, origin, angle: float, now: float):
+        if self.overheat:
+            return False
         if now - self._last < self.cooldown:
             return False
         self._last = now
+        self.heat = min(1.0, self.heat + self.heat_per_shot)
+        if self.heat >= 1.0:
+            self.overheat = True
         dx = math.cos(angle)
         dy = math.sin(angle)
         self.shots.append({
@@ -34,6 +43,9 @@ class LaserSystem:
         return True
 
     def update(self, dt: float):
+        self.heat = max(0.0, self.heat - self.cool_rate * dt)
+        if self.overheat and self.heat < 0.25:
+            self.overheat = False
         for s in self.shots:
             s["x"] += s["vx"] * dt
             s["y"] += s["vy"] * dt

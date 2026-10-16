@@ -10,6 +10,7 @@ from camera.camera import Camera
 from effects.galaxy import FACTS, Galaxy
 from effects.lasers import LaserSystem
 from effects.meteors import MeteorShower
+from effects.popups import Popups
 from effects.shockwaves import Shockwaves
 from effects.starfield import Starfield
 from effects.trails import Trail
@@ -82,6 +83,7 @@ def main() -> None:
     shower = MeteorShower()
     debris = ParticleSystem(400)
     shockwaves = Shockwaves()
+    popups = Popups()
     sounds = SoundKit(config.SOUND_ENABLED)
     score = 0
     best = BestScore()
@@ -245,6 +247,7 @@ def main() -> None:
             for a in asteroids_hit:
                 sx, sy = a.get("screen", (shot["x"], shot["y"]))
                 score += streak
+                popups.spawn(sx, sy, f"+{streak}", (255, 210, 140))
                 shockwaves.spawn(sx, sy, (255, 215, 140), growth=380)
                 for _ in range(18):
                     ang = random.uniform(0, math.tau)
@@ -258,6 +261,7 @@ def main() -> None:
                 sx, sy = c.get("screen", (shot["x"], shot["y"]))
                 comets_destroyed += 1
                 score += 5 + streak
+                popups.spawn(sx, sy, f"+{5 + streak}", (150, 225, 255))
                 shake = max(shake, 8.0)
                 renderer.cue_flash(90, (150, 215, 255))
                 sounds.comet()
@@ -282,6 +286,7 @@ def main() -> None:
                 renderer.cue_flash(40, (255, 230, 180))
                 for m in meteors_hit:
                     score += 2
+                    popups.spawn(m["x"], m["y"], "+2", (255, 175, 110))
                     shockwaves.spawn(m["x"], m["y"], (255, 170, 110), growth=320)
                     debris.spawn_one(m["x"], m["y"], vx=0, vy=0, size=14,
                                      max_life=0.15, color=(255, 245, 220))
@@ -298,6 +303,8 @@ def main() -> None:
         shower.draw(renderer.surface)
         shockwaves.update(world_dt)
         shockwaves.draw(renderer.surface)
+        popups.update(world_dt)
+        popups.draw(renderer.surface)
         if score > best.value and now >= best_persist_until:
             if best.update(score):
                 best_banner_until = now + 4.0

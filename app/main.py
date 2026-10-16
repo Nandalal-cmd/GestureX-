@@ -302,7 +302,7 @@ def main() -> None:
             if best.update(score):
                 best_banner_until = now + 4.0
             best_persist_until = now + 1.0
-        # planetary gravity on debris
+        # gravity
         forces = []
         for b in galaxy.bodies:
             if b.screen is None: continue

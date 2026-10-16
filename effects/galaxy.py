@@ -196,6 +196,7 @@ class Galaxy:
     def blast(self, pos, radius: float = 6.0):
         """Destroy asteroids/comets within radius of pos; return hit buckets."""
         hits = {"asteroids": [], "comets": []}
+        from app import config
         for a in self.asteroids:
             s = a.get("screen")
             if s is not None and math.hypot(s[0] - pos[0],

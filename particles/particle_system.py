@@ -32,10 +32,10 @@ class ParticleSystem:
         for _ in range(max(0, missing)):
             self.spawn_one(random.uniform(0, width), random.uniform(0, height), color=color)
 
-    def update(self, dt, drag=0.985):
+    def update(self, dt, drag=0.985, forces=None):
         for p in self._pool:
             if p.alive:
-                p.update(dt, drag=drag)
+                p.update(dt, drag=drag, forces=forces)
 
     def alive_particles(self):
         return (p for p in self._pool if p.alive)

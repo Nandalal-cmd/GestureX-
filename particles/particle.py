@@ -29,9 +29,13 @@ class Particle:
             random.randint(80, 160), random.randint(140, 220), 255)
         self.alive = True
 
-    def update(self, dt: float, drag: float = 0.98):
+    def update(self, dt: float, drag: float = 0.98, forces=None):
         if not self.alive:
             return
+        if forces:
+            for fx, fy in forces:
+                self.vx += fx * dt
+                self.vy += fy * dt
         self.vx *= drag
         self.vy *= drag
         self.x += self.vx * dt

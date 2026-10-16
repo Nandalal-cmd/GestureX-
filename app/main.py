@@ -302,8 +302,20 @@ def main() -> None:
             if best.update(score):
                 best_banner_until = now + 4.0
             best_persist_until = now + 1.0
+        # planetary gravity on debris
+        forces = []
+        for b in galaxy.bodies:
+            if b.screen is None: continue
+            bx, by = b.screen
+            bs = b.size * b.scale * 3.0
+            for p in debris._pool:
+                if not p.alive: continue
+                dx, dy = bx - p.x, by - p.y
+                d2 = max(400.0, dx*dx + dy*dy)
+                f = 2800.0 * bs / d2
+                forces.append((dx * f, dy * f))
         renderer.draw_particles(debris)
-        debris.update(world_dt)
+        debris.update(world_dt, forces=forces)
         renderer.decay_flash(dt)
 
         gesture_colors = {

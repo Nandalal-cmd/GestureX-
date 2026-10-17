@@ -93,6 +93,8 @@ def main() -> None:
     streak = 0
     streak_until = 0.0
     shake = 0.0
+    time_scale = 1.0
+    slowmo_until = 0.0
     clock = pygame.time.Clock()
 
     w, h = renderer.width, renderer.height
@@ -206,7 +208,14 @@ def main() -> None:
 
         galaxy_anchor = (w / 2.0, h / 2.0)
         warping = any(entry[2] == GestureType.GUN for entry in per_hand)
-        speed_k = config.TIME_WARP_FACTOR if warping else 1.0
+        now = time.monotonic()
+        target_scale = 1.0
+        if warping:
+            target_scale = config.TIME_WARP_FACTOR
+        if now < slowmo_until:
+            target_scale = min(target_scale, config.SLOWMO_FACTOR)
+        time_scale += (target_scale - time_scale) * min(1.0, dt * 8.0)
+        speed_k = time_scale
         world_dt = dt * speed_k
         galaxy.update(world_dt, effective_gesture)
         starfield.update(dt)
@@ -228,7 +237,6 @@ def main() -> None:
         else:
             galaxy.draw(renderer.surface, galaxy_anchor, elapsed)
         lasers.update(world_dt)
-        now = time.monotonic()
         hit_any = False
         for shot in lasers.shots:
             hits = galaxy.blast((shot["x"], shot["y"]))
@@ -263,6 +271,7 @@ def main() -> None:
                 score += 5 + streak
                 popups.spawn(sx, sy, f"+{5 + streak}", (150, 225, 255))
                 shake = max(shake, 8.0)
+                slowmo_until = max(slowmo_until, now + config.SLOWMO_DURATION)
                 renderer.cue_flash(90, (150, 215, 255))
                 sounds.comet()
                 shockwaves.spawn(sx, sy, (140, 225, 255), growth=700, life=0.55)

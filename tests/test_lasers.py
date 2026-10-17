@@ -25,3 +25,21 @@ def test_reset_clears():
     las.fire((0.0, 0.0), 0.0, 0.0)
     las.reset()
     assert las.shots == []
+
+
+def test_heat_stored_per_shot_and_overheats():
+    las = LaserSystem(cooldown=0.0, speed=100.0)
+    for i in range(6):
+        las.fire((0.0, 0.0), 0.0, float(i) * 0.01)
+    assert las.shots[0]["heat"] < las.shots[-1]["heat"]
+    assert las.overheat is True
+    assert las.fire((0.0, 0.0), 0.0, 1.0) is False
+
+
+def test_heat_cools_and_recovers():
+    las = LaserSystem(cooldown=0.0)
+    for i in range(6):
+        las.fire((0.0, 0.0), 0.0, float(i))
+    las.update(3.0)
+    assert las.overheat is False
+    assert las.heat < 0.25

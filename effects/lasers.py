@@ -39,6 +39,7 @@ class LaserSystem:
             "vx": dx * self.speed,
             "vy": dy * self.speed,
             "age": 0.0,
+            "heat": self.heat,
         })
         return True
 
@@ -56,10 +57,14 @@ class LaserSystem:
         for s in self.shots:
             x, y = s["x"], s["y"]
             tail = (x - s["vx"] * 0.045, y - s["vy"] * 0.045)
+            k = max(0.0, min(1.0, s.get("heat", 0.0)))
+            core = (230, int(250 - 90 * k), int(255 - 205 * k))
+            halo = (int(90 + 165 * k), int(220 - 120 * k), int(255 - 235 * k))
+            line = (int(120 + 135 * k), int(230 - 130 * k), int(255 - 220 * k))
             d = 26
             glow = pygame.Surface((d, d), pygame.SRCALPHA)
-            pygame.draw.circle(glow, (90, 220, 255, 90), (d // 2, d // 2), d // 2)
-            pygame.draw.circle(glow, (230, 250, 255, 220), (d // 2, d // 2), 5)
+            pygame.draw.circle(glow, (*halo, int(90 + 60 * k)), (d // 2, d // 2), d // 2)
+            pygame.draw.circle(glow, (*core, 220), (d // 2, d // 2), 5)
             surface.blit(glow, (int(x) - d // 2, int(y) - d // 2))
-            pygame.draw.line(surface, (120, 230, 255),
+            pygame.draw.line(surface, line,
                              (int(tail[0]), int(tail[1])), (int(x), int(y)), 2)

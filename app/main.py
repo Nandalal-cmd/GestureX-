@@ -32,7 +32,7 @@ from tracking.hand_tracker import HandTracker
 from tracking.landmarks import INDEX_MCP, INDEX_TIP, MIDDLE_MCP, PINKY_MCP, WRIST
 from ui.main_window import UIState
 from utils.logger import setup_logging
-from utils.scores import BestScore
+from utils.scores import BestScore, Leaderboard
 from utils.sounds import SoundKit
 
 logger = logging.getLogger(__name__)
@@ -87,6 +87,7 @@ def main() -> None:
     sounds = SoundKit(config.SOUND_ENABLED)
     score = 0
     best = BestScore()
+    leaderboard = Leaderboard()
     best_banner_until = 0.0
     best_persist_until = 0.0
     comets_destroyed = 0
@@ -392,8 +393,14 @@ def main() -> None:
         hs.blit(hint_surf, (14, 6))
         renderer.surface.blit(hs, ((renderer.width - hw - 28) // 2,
                                    renderer.height - 42))
+        if elapsed < 4.0:
+            lb_alpha = min(1.0, max(0.0, (4.0 - elapsed) / 1.2))
+            highlight = leaderboard.rank_of(score) - 1 if score > 0 else -1
+            renderer.draw_leaderboard(leaderboard.entries, lb_alpha, highlight)
         renderer.present()
 
+    if score > 0:
+        leaderboard.add(score)
     camera.stop()
     tracker.close()
     renderer.quit()

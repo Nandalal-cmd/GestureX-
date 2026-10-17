@@ -80,6 +80,39 @@ class Renderer:
 
     def render_hud(self, rows, x: int = 16, y: int = 16, width: int = 340):
         return None
+
+    def draw_leaderboard(self, entries, alpha: float = 1.0, highlight: int = -1):
+        a = max(0.0, min(1.0, alpha))
+        if a <= 0.0:
+            return
+        width, height = 420, 300
+        panel = pygame.Surface((width, height), pygame.SRCALPHA)
+        pygame.draw.rect(panel, (10, 14, 26, int(225 * a)), panel.get_rect(),
+                         border_radius=14)
+        pygame.draw.rect(panel, (70, 130, 255, int(255 * a)), panel.get_rect(),
+                         1, border_radius=14)
+        title = self.title_font.render("TOP SCORES", True, (235, 240, 250))
+        title.set_alpha(int(255 * a))
+        panel.blit(title, (24, 16))
+        pygame.draw.line(panel, (58, 74, 110, int(255 * a)), (24, 52),
+                         (width - 24, 52), 1)
+        if not entries:
+            empty = self.label_font.render("No scores yet - go shoot!",
+                                           True, (150, 160, 185))
+            empty.set_alpha(int(255 * a))
+            panel.blit(empty, (24, 70))
+        for i, value in enumerate(entries):
+            y = 70 + i * 42
+            rank = self.font.render(f"#{i + 1}", True, (150, 175, 220))
+            rank.set_alpha(int(255 * a))
+            panel.blit(rank, (24, y))
+            col = (255, 225, 160) if i == highlight else (225, 232, 245)
+            score = self.big_font.render(str(value), True, col)
+            score.set_alpha(int(255 * a))
+            panel.blit(score, (width - 24 - score.get_width(), y - 4))
+        self.surface.blit(panel, ((self.width - width) // 2,
+                                  (self.height - height) // 2))
+
     def cue_flash(self, alpha: int, color=(255, 255, 255)):
         self._flash_alpha = max(self._flash_alpha, float(alpha))
         self._flash_color = color

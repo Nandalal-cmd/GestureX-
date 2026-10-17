@@ -79,7 +79,9 @@ class Galaxy:
              "orbit": random.uniform(214, 222),
              "speed": random.uniform(0.42, 0.55),
              "size": random.uniform(1.0, 2.6),
-             "elev": random.uniform(-0.06, 0.06)}
+             "elev": random.uniform(-0.06, 0.06),
+             "angle": random.uniform(0, math.tau),
+             "spin": random.uniform(-2.2, 2.2)}
             for _ in range(BELT_COUNT)
         ]
         self.comets = [
@@ -132,6 +134,7 @@ class Galaxy:
             b.moon_phase += 2.2 * dt
         for a in self.asteroids:
             a["phase"] += a["speed"] * BASE_SPEED * dt * (1.0 - 0.35 * self.collapse)
+            a["angle"] = a.get("angle", 0.0) + a.get("spin", 0.0) * dt
         for c in self.comets:
             c["phase"] += c["speed"] * dt * (1.0 - 0.35 * self.collapse)
         self._respawn(dt)
@@ -145,6 +148,8 @@ class Galaxy:
                 "speed": random.uniform(0.42, 0.55),
                 "size": random.uniform(1.0, 2.6),
                 "elev": random.uniform(-0.06, 0.06),
+                "angle": random.uniform(0, math.tau),
+                "spin": random.uniform(-2.2, 2.2),
             })
         if len(self.comets) < len(COMET_DEFS) and random.random() < dt * 0.7:
             a, e, sp, _, col = random.choice(COMET_DEFS)
@@ -220,6 +225,8 @@ class Galaxy:
                         "speed": a["speed"] + sign * 0.05,
                         "size": a["size"] * 0.55,
                         "elev": a["elev"] + sign * 0.01,
+                        "angle": a.get("angle", 0.0) + sign * 0.6,
+                        "spin": a.get("spin", 0.0) + sign * 2.5,
                     })
         for c in hits["comets"]:
             self.comets.remove(c)
@@ -319,7 +326,7 @@ class Galaxy:
             sz = max(1, int(a["size"] * scale))
             a["screen"] = pos
             a["px"] = sz
-            items.append((z, self._draw_rock, surface, pos, sz))
+            items.append((z, self._draw_rock, surface, pos, sz, a.get("angle", 0.0)))
 
         for c in self.comets:
             e = c["ecc"]
@@ -352,9 +359,23 @@ class Galaxy:
                                max(5, int(self.grabbed.size * 1.4)), 2)
 
     @staticmethod
-    def _draw_rock(surface, pos, size):
-        pygame.draw.circle(surface, (130, 128, 122),
-                           (int(pos[0]), int(pos[1])), size)
+    def _draw_rock(surface, pos, size, angle=0.0):
+        cx, cy = int(pos[0]), int(pos[1])
+        if size <= 2:
+            pygame.draw.circle(surface, (130, 128, 122), (cx, cy), size)
+            return
+        points = []
+        for i in range(7):
+            a = angle + i * math.tau / 7.0
+            rad = size * (0.78 + 0.22 * ((i * 37) % 5) / 4.0)
+            points.append((cx + math.cos(a) * rad, cy + math.sin(a) * rad))
+        pygame.draw.polygon(surface, (128, 126, 120), points)
+        n = len(points)
+        for i in range(n):
+            a, b = points[i], points[(i + 1) % n]
+            shade = (86, 84, 80) if i % 2 else (152, 150, 143)
+            pygame.draw.line(surface, shade, a, b, 1)
+        pygame.draw.circle(surface, (108, 106, 101), (cx, cy), max(1, size // 2))
 
     def _draw_planet_body(self, surface, b):
         x, y = b.screen

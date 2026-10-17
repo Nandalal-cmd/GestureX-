@@ -393,6 +393,8 @@ def main() -> None:
         hs.blit(hint_surf, (14, 6))
         renderer.surface.blit(hs, ((renderer.width - hw - 28) // 2,
                                    renderer.height - 42))
+        renderer.draw_heat_vignette(lasers.heat, lasers.overheat, elapsed)
+        renderer.draw_flash()
         if elapsed < 4.0:
             lb_alpha = min(1.0, max(0.0, (4.0 - elapsed) / 1.2))
             highlight = leaderboard.rank_of(score) - 1 if score > 0 else -1

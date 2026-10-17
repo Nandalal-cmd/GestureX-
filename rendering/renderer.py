@@ -81,6 +81,28 @@ class Renderer:
     def render_hud(self, rows, x: int = 16, y: int = 16, width: int = 340):
         return None
 
+    def draw_heat_vignette(self, heat: float, overheat: bool = False,
+                           t: float = 0.0):
+        h = max(0.0, min(1.0, heat))
+        if h < 0.35 and not overheat:
+            return
+        k = max(0.0, (h - 0.35) / 0.65)
+        strength = k
+        if overheat:
+            strength = 0.7 + 0.3 * abs(math.sin(t * 8.0))
+        alpha = int((30 + 120 * strength))
+        color = (255, int(150 - 90 * strength), 40)
+        band = int(28 + 46 * k)
+        edge = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        for i in range(band, 0, -1):
+            a = int(alpha * (1.0 - i / band))
+            if a <= 0:
+                continue
+            pygame.draw.rect(edge, (*color, a),
+                             pygame.Rect(i, i, self.width - 2 * i,
+                                         self.height - 2 * i), 1)
+        self.surface.blit(edge, (0, 0))
+
     def draw_leaderboard(self, entries, alpha: float = 1.0, highlight: int = -1):
         a = max(0.0, min(1.0, alpha))
         if a <= 0.0:
